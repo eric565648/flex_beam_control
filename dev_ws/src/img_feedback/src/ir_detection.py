@@ -12,6 +12,59 @@ TOTAL_BLOB=5
 ANC_ORIGIN=np.array([0,571])
 COLOR_CODE=[[0,0,255],[255,0,0],[255,0,0],[255,0,0],[0,255,0]]
 
+class KalmanFilter(object):
+    def __init__(self) -> None:
+        super().__init__()
+
+        ## state
+        ## px,py,vx,vy
+        self.state=None
+        self.trans_mat=None
+        self.H_mat = np.array([[1,0,0,0],
+                            [0,1,0,0]])
+
+        ## variance of measurement
+        ## unit: pixel, pixel/sec
+        self.pos_var = 1
+        self.vel_var = 5
+        self.cov_mat = np.identity(4)
+        self.cov_mat[0,0]*=self.pos_var
+        self.cov_mat[1,1]*=self.pos_var
+        self.cov_mat[2,2]*=self.vel_var
+        self.cov_mat[3,3]*=self.vel_var
+
+        ## noise
+        self.Q_mat = np.identity(4)
+        self.R_mat = deepcopy(self.cov_mat[:2,:2])
+    
+    def init_measurement(self,pos,vel,dt):
+        self.state = np.array([pos[0],pos[1],vel[0],vel[1]])
+        self.trans_mat = np.identity(4)
+        self.trans_mat[0,2] = dt
+        self.trans_mat[1,3] = dt
+        self.Q_mat = self.Q_mat*dt
+    
+    def predict_update(self,pose_obs):
+        pose_obs=np.array(pose_obs)
+        
+        ## predict
+        mu_pred = np.matmul(self.trans_mat,self.state)
+        cov_pred = np.matmul(self.trans_mat,\
+                np.matmul(self.cov_mat.T,self.trans_mat.T))+self.Q_mat
+        
+        ## update
+        HCH_R=np.matmul(self.H_mat,np.matmul(cov_pred,self.H_mat.T))+self.R_mat
+        kalman_gain = np.matmul(np.linalg.pinv(HCH_R),np.matmul(self.H_mat,cov_pred))
+        innovation = pose_obs-np.matmul(self.H_mat,mu_pred)
+        mu_update = mu_pred+np.matmul(kalman_gain,innovation)
+        cov_update = cov_pred-np.matmul(kalman_gain,
+                            np.matmul(HCH_R,kalman_gain.T))
+        
+        self.state=mu_update
+        self.cov_mat=cov_update
+
+        return mu_update[:2]
+
 class IRDetection(object):
     def __init__(self) -> None:
         super().__init__()
