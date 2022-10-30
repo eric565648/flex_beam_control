@@ -12,17 +12,34 @@ from cv_bridge import CvBridge
 from std_msgs.msg import Float32MultiArray
 from sensor_msgs.msg import Joy
 
-RADIUS=1
+#### BEAM Parameters
+BODY_RADIUS=3
+BODY_COLOR=[255,255,0]
+BASE_RADIUS=4
+BASE_COLOR=[0,0,255]
+TIP_RADIUS=1
+TIP_COLOR=[0,255,0]
+BEAM_THICKNESS=1
+BEAM_COLOR=[255,255,255]
 
+#### TARGET Parameters
 TARGET_RADIUS=9
 TARGET_COLOR=[0,0,255]
 TARGET_TOTAL=6
 TARGET_RANGE_UP=[[418,95],[440,140]]
 TARGET_RANGE_DOWN=[[462,416],[482,453]]
+
+# scale
+SCALE_IMG = 1.5
+
+## Robot Range Parameters
 TOOL_RANGE=[[117,300],[140,342]]
+
+## Cnt Down
 CNT_DOWN_T = 5
 IN_TARGET_T= 5
-PUT_TEXT_O=[10,50]
+PUT_TEXT_O=[0,50]
+MSG_IMG_SIZE=60
 
 class GameInterface(object):
     def __init__(self) -> None:
@@ -35,6 +52,10 @@ class GameInterface(object):
         self.background = np.ones((600,575,3))*0
         self.dots = None
         self.joy = None
+
+        ### only for test
+        self.joy=Joy()
+        self.joy.buttons=np.array([0,0,0,0,0,0])
 
         ##### variables for interface
         self.stage = 0
@@ -78,7 +99,7 @@ class GameInterface(object):
 
         dots = deepcopy(self.dots)
         img = deepcopy(self.background)
-        msg_img = deepcopy(img[:100,:,:])
+        msg_img = deepcopy(img[:MSG_IMG_SIZE,:,:])
         joy_state = deepcopy(self.joy)
         joy_state_prev = deepcopy(self.joy_previous)
 
@@ -177,24 +198,27 @@ class GameInterface(object):
         ##### draw tool range
         img = cv2.rectangle(img,TOOL_RANGE[0],TOOL_RANGE[1],(0,60,0),-1)
 
-        ##### draw dots
+        ##### draw beam and dots
         for dot_i in range(len(dots)):
-            dot=dots[dot_i]
-            dot=dot.astype(int)
+            dot=dots[dot_i].astype(int)
             if dot_i==0:
                 # print("0:",dot)
-                c=[0,0,255]
-                img = cv2.circle(img,dot,RADIUS,c,-1)
+                img = cv2.line(img,dot,dots[dot_i+1].astype(int),BEAM_COLOR,BEAM_THICKNESS)
+                img = cv2.circle(img,dot,BASE_RADIUS,BASE_COLOR,-1)
             elif dot_i == len(self.dots)-1:
                 # print("4:",dot)
-                c=[0,255,0]
-                img = cv2.circle(img,dot,RADIUS,c,-1)
+                img = cv2.circle(img,dot,TIP_RADIUS,TIP_COLOR,-1)
             else:
-                c=[255,0,0]
-                img = cv2.circle(img,dot,RADIUS,c,-1)
-        
+                img = cv2.line(img,dot,dots[dot_i+1].astype(int),BEAM_COLOR,BEAM_THICKNESS)
+                img = cv2.circle(img,dot,BODY_RADIUS,BODY_COLOR,-1)
+
         ### concate msg img
         img = np.vstack((img,msg_img))
+
+        ## resize img
+        width = int(img.shape[1] * SCALE_IMG)
+        height = int(img.shape[0] * SCALE_IMG)
+        img = cv2.resize(img,(width, height),interpolation=cv2.INTER_AREA)
         
         cv2.imshow("process img",img)
         cv2.waitKey(1)
