@@ -1,0 +1,5 @@
+.vscode
+dev_ws/build
+dev_ws/devel
+dev_ws/src/Azure_Kinect_ROS_Driver
+dev_ws/src/ur_robot/ur_modern_driver

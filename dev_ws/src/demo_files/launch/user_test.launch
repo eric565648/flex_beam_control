@@ -1,0 +1,16 @@
+<launch>
+
+    <!-- kinematic control -->
+    <node name="joy_node" pkg="joy" type="joy_node">
+    </node>
+    <node name="joystick_control" pkg="kin_control" type="joystick_control.py" output="screen">
+    </node>
+    
+    <!-- launch ir blob detection node -->
+    <node name="ir_detection" pkg="img_feedback" type="ir_detection.py" output="screen">
+    </node>
+
+    <!-- launch user interface -->
+    <node name="user_interface" pkg="user_interface" type="user_interface.py" output="screen">
+    </node>
+</launch>
