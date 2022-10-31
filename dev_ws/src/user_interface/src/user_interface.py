@@ -73,6 +73,7 @@ class GameInterface(object):
         
         ## publisher
         self.target_pup = rospy.Publisher('/current_target',Float32MultiArray,queue_size=1)
+        # self.vel_constrain_pub = rospy.Publisher()
 
         ## timer for pygame
         self.pg_timer = rospy.Timer(rospy.Duration(1./100),self.timer_cb)
@@ -132,8 +133,8 @@ class GameInterface(object):
             duration = rospy.get_time()-self.cnt_down_st
 
             ### draw target zone
-            img = cv2.rectangle(img,TARGET_RANGE_UP[0],TARGET_RANGE_UP[1],(60,0,60),-1)
-            img = cv2.rectangle(img,TARGET_RANGE_DOWN[0],TARGET_RANGE_DOWN[1],(60,0,60),-1)
+            # img = cv2.rectangle(img,TARGET_RANGE_UP[0],TARGET_RANGE_UP[1],(60,0,60),-1)
+            # img = cv2.rectangle(img,TARGET_RANGE_DOWN[0],TARGET_RANGE_DOWN[1],(60,0,60),-1)
 
             ### draw target
             if self.target_origin is None:
@@ -196,7 +197,7 @@ class GameInterface(object):
             self.stage=0
 
         ##### draw tool range
-        img = cv2.rectangle(img,TOOL_RANGE[0],TOOL_RANGE[1],(0,60,0),-1)
+        # img = cv2.rectangle(img,TOOL_RANGE[0],TOOL_RANGE[1],(0,60,0),-1)
 
         ##### draw beam and dots
         for dot_i in range(len(dots)):
