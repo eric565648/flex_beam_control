@@ -41,6 +41,10 @@ IN_TARGET_T= 5
 PUT_TEXT_O=[0,50]
 MSG_IMG_SIZE=60
 
+## calibration
+CAL_ORIGIN=[105,321]
+CAL_TIP=[470,402]
+
 class GameInterface(object):
     def __init__(self) -> None:
         super().__init__()
@@ -103,6 +107,9 @@ class GameInterface(object):
         msg_img = deepcopy(img[:MSG_IMG_SIZE,:,:])
         joy_state = deepcopy(self.joy)
         joy_state_prev = deepcopy(self.joy_previous)
+
+        print(dots[0],dots[4])
+        print('===================')
 
         ##### stages
         if self.stage == 0: ## wait stage

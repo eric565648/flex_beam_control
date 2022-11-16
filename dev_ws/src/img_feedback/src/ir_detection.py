@@ -7,6 +7,7 @@ from sensor_msgs.msg import Image,CameraInfo
 from std_msgs.msg import Float32MultiArray
 import cv2
 from cv_bridge import CvBridge,CvBridgeError
+import time
 
 TOTAL_BLOB=5
 ANC_ORIGIN=np.array([0,571])
@@ -100,12 +101,14 @@ class IRDetection(object):
     
     def detect_obj(self):
 
+        st=time.time()
+
         ## normalize img
         img = deepcopy(self.img.astype(float))
         img = img/np.max(img)
 
         ## thresholding to get tapes
-        THRES=0.3
+        THRES=0.35
         ret,img = cv2.threshold(img,THRES,1,cv2.THRESH_BINARY)
         img = img.astype(np.uint8)*255
 
@@ -116,18 +119,34 @@ class IRDetection(object):
         origins = []
         for cnt in contours:
             rect = cv2.minAreaRect(cnt)
+            # print(rect)
             origins.append(rect[0])
             box = cv2.boxPoints(rect)
             boxes.append(np.int0(box))
+            # print('----------')
+        # print("==================")
         origins=np.array(origins)
         boxes=np.array(boxes)
         # print(origins)
+        # return
 
         ## find corresponding blobs
         min_blob_id = np.argmin(np.linalg.norm(origins-ANC_ORIGIN,2,axis=-1))
         sort_id = np.argsort(np.linalg.norm(origins-origins[min_blob_id],2,axis=1))
         origins=origins[sort_id]
         boxes=boxes[sort_id]
+
+        # for box_i in range(len(boxes)):
+        #     try:
+        #         if box_i < len(boxes):
+        #             c = COLOR_CODE[box_i]
+        #         else:
+        #             c=COLOR_CODE[-1]
+        #     except IndexError:
+        #         c=COLOR_CODE[1]
+        #     img=cv2.drawContours(img,[boxes[box_i]],0,c,2)
+        # cv2.imshow("process img",img)
+        # cv2.waitKey(1)
 
         ### add kalman filer
         # 0.initialization
@@ -171,10 +190,10 @@ class IRDetection(object):
         #         print(box_i)
         #         c=COLOR_CODE[1]
         #     img=cv2.drawContours(img,[boxes[box_i]],0,c,2)
-        for origin in origins:
-            img = cv2.circle(img,np.array(origin).astype(int),3,[0,0,255],-1)
-        for origin in origins_filtered:
-            img = cv2.circle(img,np.array(origin).astype(int),3,[0,255,0],-1)
+        # for origin in origins:
+        #     img = cv2.circle(img,np.array(origin).astype(int),3,[0,0,255],-1)
+        # for origin in origins_filtered:
+        #     img = cv2.circle(img,np.array(origin).astype(int),3,[0,255,0],-1)
         
          
         ### no kalman filters
@@ -189,8 +208,10 @@ class IRDetection(object):
 
         ## for debug
         # cv2.imshow("origin img",self.img)
-        cv2.imshow("process img",img)
-        cv2.waitKey(1)
+        # cv2.imshow("process img",img)
+        # cv2.waitKey(1)
+
+        # print(time.time()-st)
 
 if __name__=='__main__':
     
