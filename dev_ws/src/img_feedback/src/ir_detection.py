@@ -3,6 +3,7 @@
 import numpy as np
 from copy import deepcopy
 import rospy
+import message_filters
 from sensor_msgs.msg import Image,CameraInfo
 from std_msgs.msg import Float32MultiArray
 import cv2
@@ -88,12 +89,19 @@ class IRDetection(object):
         # self.ir_enhance_pub = rospy.Publisher('/ir/enhance')
 
         ## subscriber
-        self.ir_sub=rospy.Subscriber('/ir/image_raw',Image,self.ir_cb,queue_size=1)
+        # self.ir_sub=rospy.Subscriber('/ir/image_raw',Image,self.img_cb,queue_size=1)
+        self.ir_sub=message_filters.Subscriber('/ir/image_raw',Image)
+        self.depth_sub=message_filters.Subscriber('/depth/image_raw',Image)
+        self.depth_info_sub=message_filters.Subscriber('/depth/camera_info',CameraInfo)
+        self.ts_img = message_filters.TimeSynchronizer([self.ir_sub,self.depth_sub,self.depth_info_sub],1)
+        self.ts_img.registerCallback(self.img_cb)
     
-    def ir_cb(self,msg):
+    def img_cb(self,ir_img,depth_img,depth_info):
 
         try:
-            self.img = self.bridge.imgmsg_to_cv2(msg)
+            self.img = self.bridge.imgmsg_to_cv2(ir_img)
+            self.depth_img=self.bridge.imgmsg_to_cv2(depth_img)
+            self.depth_info=depth_info
         except CvBridgeError as e:
             print(e)
 
