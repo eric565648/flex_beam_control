@@ -61,6 +61,10 @@ class GameInterface(object):
         self.joy=Joy()
         self.joy.buttons=np.array([0,0,0,0,0,0])
 
+        self.use_falcon=False
+        if rospy.has_param('use_falcon'):
+            self.use_falcon=rospy.get_param('use_falcon')
+
         ##### variables for interface
         self.stage = 0
         self.joy_previous = None # record previous joy commands
@@ -73,7 +77,12 @@ class GameInterface(object):
 
         ## subscriber
         self.dot_pub = rospy.Subscriber('/dot',Float32MultiArray,self.dot_cb,queue_size=1)
-        self.sub_joy = rospy.Subscriber('/joy',Joy,self.joy_cb,queue_size=1)
+        
+        if not self.use_falcon:
+            self.joy_topic_name='/joy'
+        else:
+            self.joy_topic_name='/falcon_joy'
+        self.sub_joy = rospy.Subscriber(self.joy_topic_name,Joy,self.joy_cb,queue_size=1)
         
         ## publisher
         self.target_pup = rospy.Publisher('/current_target',Float32MultiArray,queue_size=1)
@@ -108,8 +117,8 @@ class GameInterface(object):
         joy_state = deepcopy(self.joy)
         joy_state_prev = deepcopy(self.joy_previous)
 
-        print(dots[0],dots[4])
-        print('===================')
+        # print(dots[0],dots[4])
+        # print('===================')
 
         ##### stages
         if self.stage == 0: ## wait stage

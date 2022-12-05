@@ -25,7 +25,7 @@ HOME_P=1
 HOME_I=0.1
 HOME_D=0.01
 
-class Joy2Space(object):
+class Joy2Vel(object):
     
     def __init__(self) -> None:
 
@@ -34,7 +34,7 @@ class Joy2Space(object):
         self.robot=robot_obj(self.rospack.get_path('kin_control')+'/config/UR5e_robot_default_config.yml')
         self.robot_q = None
 
-        self.use_falcon=True
+        self.use_falcon=False
         if rospy.has_param('use_falcon'):
             self.use_falcon=rospy.get_param('use_falcon')
         
@@ -42,7 +42,9 @@ class Joy2Space(object):
         Float64MultiArray,queue_size=1)  
         self.vel_pub = rospy.Publisher('vel_cmd',Float64MultiArray,queue_size=1)    
 
-        self.target = np.array([0,0])
+        self.omega_th0 = 0
+        self.vel_x = 0
+        self.vel_y = 0
         if not self.use_falcon:
             self.joy_topic_name='/joy'
         else:
@@ -58,7 +60,11 @@ class Joy2Space(object):
     def joy_cb(self,msg):
 
         if not self.use_falcon:
-            return
+            self.omega_th0 = msg.axes[3]*MAX_OMG if np.fabs(msg.axes[3])>=DEAD_ZONE else 0
+            # self.vel_x = msg.axes[-2]*-1*MAX_VEL if np.fabs(msg.axes[-2])>=DEAD_ZONE else 0
+            # self.vel_y = msg.axes[-1]*MAX_VEL if np.fabs(msg.axes[-1])>=DEAD_ZONE else 0
+            self.vel_x = msg.axes[0]*-1*MAX_VEL if np.fabs(msg.axes[0])>=DEAD_ZONE else 0
+            self.vel_y = msg.axes[1]*MAX_VEL if np.fabs(msg.axes[1])>=DEAD_ZONE else 0
         else:
             self.omega_th0 = msg.axes[2]*MAX_OMG if np.fabs(msg.axes[2])>=DEAD_ZONE else 0
             self.vel_x = msg.axes[0]*MAX_VEL if np.fabs(msg.axes[0])>=DEAD_ZONE else 0
@@ -70,9 +76,6 @@ class Joy2Space(object):
             self.go_home_flag=False
 
     def joint_state_cb(self,msg):
-
-        if not self.use_falcon:
-            return
 
         self.robot_q=np.array(msg.position)
         self.robot_q=self.robot_q[COMPENSET]
@@ -127,6 +130,6 @@ class Joy2Space(object):
 
 if __name__=='__main__':
     
-    rospy.init_node('joy_to_space')
-    j2s=Joy2Space()
+    rospy.init_node('joy_to_vel')
+    j2v=Joy2Vel()
     rospy.spin()

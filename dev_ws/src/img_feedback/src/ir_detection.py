@@ -161,6 +161,7 @@ class IRDetection(object):
         if self.kalman_filters[0].state is None:
             for i in range(self.DOT_NUM):
                 self.kalman_filters[i].init_measurement(origins[i],[0,0],1/30.)
+            return
         else:
             # 1. data association based on distance
             origin_assocated={}

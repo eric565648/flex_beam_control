@@ -1,8 +1,20 @@
 <launch>
 
-    <!-- kinematic control -->
+    <arg name="use_falcon" default="false"/>
+
+    <rosparam param="use_falcon" subst_value="True">$(arg use_falcon)</rosparam>
+
+    <group if="$(arg use_falcon)">
+        <node name="falcon_driver" pkg="falcon_driver" type="falcon_driver" output="screen"/>
+        <node name="falcon_joy" pkg="falcon_driver" type="falcon_joy" output="screen"/>
+    </group>
+    <group unless="$(arg use_falcon)">
     <node name="joy_node" pkg="joy" type="joy_node">
     </node>
+    </group>
+
+    <!-- kinematic control -->
+    
     <node name="joystick_control" pkg="kin_control" type="joystick_control.py" output="screen">
     </node>
     
