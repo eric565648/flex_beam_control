@@ -36,7 +36,7 @@ class KalmanFilter(object):
         self.cov_mat[3,3]*=self.vel_var
 
         ## noise
-        self.Q_mat = np.identity(4)*100
+        self.Q_mat = np.identity(4)*300
         self.R_mat = deepcopy(self.cov_mat[:2,:2])
     
     def init_measurement(self,pos,vel,dt):
@@ -91,17 +91,27 @@ class IRDetection(object):
         ## subscriber
         # self.ir_sub=rospy.Subscriber('/ir/image_raw',Image,self.img_cb,queue_size=1)
         self.ir_sub=message_filters.Subscriber('/ir/image_raw',Image)
-        self.depth_sub=message_filters.Subscriber('/depth/image_raw',Image)
-        self.depth_info_sub=message_filters.Subscriber('/depth/camera_info',CameraInfo)
-        self.ts_img = message_filters.TimeSynchronizer([self.ir_sub,self.depth_sub,self.depth_info_sub],1)
+        # self.depth_sub=message_filters.Subscriber('/depth/image_raw',Image)
+        # self.depth_info_sub=message_filters.Subscriber('/depth/camera_info',CameraInfo)
+        # self.ts_img = message_filters.TimeSynchronizer([self.ir_sub,self.depth_sub,self.depth_info_sub],1)
+        self.ts_img = message_filters.TimeSynchronizer([self.ir_sub],1)
         self.ts_img.registerCallback(self.img_cb)
     
-    def img_cb(self,ir_img,depth_img,depth_info):
+    # def img_cb(self,ir_img,depth_img,depth_info):
+
+    #     try:
+    #         self.img = self.bridge.imgmsg_to_cv2(ir_img)
+    #         self.depth_img=self.bridge.imgmsg_to_cv2(depth_img)
+    #         self.depth_info=depth_info
+    #     except CvBridgeError as e:
+    #         print(e)
+
+    #     self.detect_obj()
+    
+    def img_cb(self,ir_img):
 
         try:
             self.img = self.bridge.imgmsg_to_cv2(ir_img)
-            self.depth_img=self.bridge.imgmsg_to_cv2(depth_img)
-            self.depth_info=depth_info
         except CvBridgeError as e:
             print(e)
 
@@ -112,20 +122,33 @@ class IRDetection(object):
         st=time.time()
 
         ## normalize img
+        
         img = deepcopy(self.img.astype(float))
-        img = img/np.max(img)
+        st_p=time.time()
+        # img = img/np.max(img)
+        cv2.normalize(img, img, 0, 1, cv2.NORM_MINMAX)
+        # print("normalize:",time.time()-st_p)
 
         ## thresholding to get tapes
-        THRES=0.35
+        st_p=time.time()
+        THRES=0.25
         ret,img = cv2.threshold(img,THRES,1,cv2.THRESH_BINARY)
         img = img.astype(np.uint8)*255
+        # print("thres:",time.time()-st_p)
 
         ## find contour
+        st_p=time.time()
         contours,hierarchy = cv2.findContours(img,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
+        # print("contour:",time.time()-st_p)
+
         ## draw contour rect
+        st_p=time.time()
         boxes = []
         origins = []
         for cnt in contours:
+            area=cv2.contourArea(cnt)
+            if area<3:
+                continue
             rect = cv2.minAreaRect(cnt)
             # print(rect)
             origins.append(rect[0])
@@ -137,12 +160,15 @@ class IRDetection(object):
         boxes=np.array(boxes)
         # print(origins)
         # return
+        # print("draw rect:",time.time()-st_p)
 
         ## find corresponding blobs
+        st_p=time.time()
         min_blob_id = np.argmin(np.linalg.norm(origins-ANC_ORIGIN,2,axis=-1))
         sort_id = np.argsort(np.linalg.norm(origins-origins[min_blob_id],2,axis=1))
         origins=origins[sort_id]
         boxes=boxes[sort_id]
+        # print("corr blobs:",time.time()-st_p)
 
         # for box_i in range(len(boxes)):
         #     try:
@@ -157,6 +183,7 @@ class IRDetection(object):
         # cv2.waitKey(1)
 
         ### add kalman filer
+        st_p=time.time()
         # 0.initialization
         if self.kalman_filters[0].state is None:
             for i in range(self.DOT_NUM):
@@ -183,10 +210,11 @@ class IRDetection(object):
                 else:
                     self.kalman_filters[i].predict_update(origin_assocated[i])
                 origins_filtered.append(self.kalman_filters[i].state[:2])
+        # print("kalman:",time.time()-st_p)
                 
         
         ## draw contour
-        img = np.stack((img,)*3,axis=-1)
+        # img = np.stack((img,)*3,axis=-1)
         # img=cv2.drawContours(img,contours,-1,(0,0,255),1)
         # for box_i in range(len(boxes)):
         #     try:
@@ -216,6 +244,7 @@ class IRDetection(object):
         self.dot_pub.publish(dot_msg)
 
         ## for debug
+        # print("wtf")
         # cv2.imshow("origin img",self.img)
         # cv2.imshow("process img",img)
         # cv2.waitKey(1)
