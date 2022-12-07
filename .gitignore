@@ -1,4 +1,5 @@
 .vscode
+build/
 dev_ws/build
 dev_ws/devel
 dev_ws/src/Azure_Kinect_ROS_Driver
