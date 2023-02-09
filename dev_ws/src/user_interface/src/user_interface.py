@@ -26,8 +26,10 @@ BEAM_COLOR=[255,255,255]
 TARGET_RADIUS=9
 TARGET_COLOR=[0,0,255]
 TARGET_TOTAL=6
-TARGET_RANGE_UP=[[418,95],[440,140]]
-TARGET_RANGE_DOWN=[[462,416],[482,453]]
+# TARGET_RANGE_UP=[[418,95],[440,140]]
+# TARGET_RANGE_DOWN=[[462,416],[482,453]]
+TARGET_RANGE_UP=[[428,95],[450,140]]
+TARGET_RANGE_DOWN=[[472,416],[492,453]]
 
 # scale
 SCALE_IMG = 1.5
@@ -89,15 +91,13 @@ class GameInterface(object):
         # self.vel_constrain_pub = rospy.Publisher()
 
         ## timer for pygame
-        self.pg_timer = rospy.Timer(rospy.Duration(1./100),self.timer_cb)
+        # self.pg_timer = rospy.Timer(rospy.Duration(1./30),self.timer_cb)
 
     def dot_cb(self,msg):
         self.dots = np.array(msg.data)
         self.dots = np.reshape(self.dots,(int(len(self.dots)/2),2))
 
-        # print(img)
-        # self.pg_screen.blit(pg.surfarray.make_surface(img),(0,0))
-        # pg.display.update()
+        self.timer_cb(None)
 
     def joy_cb(self,msg):
         self.joy = msg
@@ -237,8 +237,8 @@ class GameInterface(object):
         height = int(img.shape[0] * SCALE_IMG)
         img = cv2.resize(img,(width, height),interpolation=cv2.INTER_AREA)
         
-        cv2.imshow("process img",img)
-        cv2.waitKey(1)
+        # cv2.imshow("process img",img)
+        # cv2.waitKey(1)
 
         ##### record previous joy
         self.joy_previous = deepcopy(joy_state)

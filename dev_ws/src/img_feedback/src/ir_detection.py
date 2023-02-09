@@ -87,14 +87,15 @@ class IRDetection(object):
         ## publisher
         self.dot_pub = rospy.Publisher('/dot',Float32MultiArray,queue_size=1)
         # self.ir_enhance_pub = rospy.Publisher('/ir/enhance')
+        self.debug_pub = rospy.Publisher('/debug_img',Image,queue_size=1)
 
         ## subscriber
         # self.ir_sub=rospy.Subscriber('/ir/image_raw',Image,self.img_cb,queue_size=1)
         self.ir_sub=message_filters.Subscriber('/ir/image_raw',Image)
-        # self.depth_sub=message_filters.Subscriber('/depth/image_raw',Image)
+        self.depth_sub=message_filters.Subscriber('/depth/image_raw',Image)
         # self.depth_info_sub=message_filters.Subscriber('/depth/camera_info',CameraInfo)
         # self.ts_img = message_filters.TimeSynchronizer([self.ir_sub,self.depth_sub,self.depth_info_sub],1)
-        self.ts_img = message_filters.TimeSynchronizer([self.ir_sub],1)
+        self.ts_img = message_filters.TimeSynchronizer([self.ir_sub,self.depth_sub],1)
         self.ts_img.registerCallback(self.img_cb)
     
     # def img_cb(self,ir_img,depth_img,depth_info):
@@ -108,10 +109,12 @@ class IRDetection(object):
 
     #     self.detect_obj()
     
-    def img_cb(self,ir_img):
+    def img_cb(self,ir_img,depth_img):
 
         try:
             self.img = self.bridge.imgmsg_to_cv2(ir_img)
+            self.depth_img = self.bridge.imgmsg_to_cv2(depth_img)
+            self.header=ir_img.header
         except CvBridgeError as e:
             print(e)
 
@@ -120,9 +123,18 @@ class IRDetection(object):
     def detect_obj(self):
 
         st=time.time()
+        this_header=self.header
+
+        ## depth img
+        depth_img = deepcopy(self.depth_img.astype(float))
+        # ret,thresh_0_img = cv2.threshold(depth_img,0,1,cv2.THRESH_BINARY)
+        THRES=5000
+        ret,thresh_img = cv2.threshold(depth_img,THRES,255,cv2.THRESH_BINARY_INV)
+        mast_0 = (depth_img/np.max(depth_img)*255).astype(np.uint8)
+        thresh_img=cv2.bitwise_and(thresh_img,thresh_img,mask=mast_0)
+        thresh_img=thresh_img.astype(np.uint8)
 
         ## normalize img
-        
         img = deepcopy(self.img.astype(float))
         st_p=time.time()
         # img = img/np.max(img)
@@ -131,15 +143,21 @@ class IRDetection(object):
 
         ## thresholding to get tapes
         st_p=time.time()
-        THRES=0.25
+        THRES=0.2
         ret,img = cv2.threshold(img,THRES,1,cv2.THRESH_BINARY)
         img = img.astype(np.uint8)*255
         # print("thres:",time.time()-st_p)
+
+        ## distance mask
+        img=cv2.bitwise_and(img,img,mask=thresh_img)
+        # cv2.imshow("process img",img)
+        # cv2.waitKey(1)
 
         ## find contour
         st_p=time.time()
         contours,hierarchy = cv2.findContours(img,cv2.RETR_TREE,cv2.CHAIN_APPROX_SIMPLE)
         # print("contour:",time.time()-st_p)
+        
 
         ## draw contour rect
         st_p=time.time()
@@ -250,6 +268,10 @@ class IRDetection(object):
         # cv2.waitKey(1)
 
         # print(time.time()-st)
+
+        img_msg= self.bridge.cv2_to_imgmsg(img)
+        img_msg.header=this_header
+        self.debug_pub.publish(img_msg)
 
 if __name__=='__main__':
     

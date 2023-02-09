@@ -1,0 +1,10 @@
+<launch>
+    
+    <!-- launch ir blob detection node -->
+    <node name="ir_detection" pkg="img_feedback" type="ir_detection.py" output="screen">
+    </node>
+
+    <!-- launch user interface -->
+    <node name="user_interface" pkg="user_interface" type="user_interface.py" output="screen">
+    </node>
+</launch>

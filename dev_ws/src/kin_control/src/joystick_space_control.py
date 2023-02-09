@@ -32,8 +32,8 @@ falcon_x=[-40,40]
 robot_x=[450,800]
 falcon_y=[-40,40]
 robot_y=[0,350]
-potential_range=1024
-theta_compenset=-1
+potential_range=420
+theta_compenset=1
 robot_theta_upper=np.radians(50)
 robot_theta_lower=np.radians(-20)
 robot_theta_range=robot_theta_upper-robot_theta_lower
@@ -72,7 +72,7 @@ class Joy2Space(object):
         self.falcon_catch_robot=False
 
         ### anchoring angle position
-        self.anchor_angle=False
+        self.anchor_angle=True
         self.theta_scale=robot_theta_range/potential_range
         self.knob_theta_start=None
         self.robot_theta_start=None
